@@ -94,7 +94,7 @@ export function StockInForm({
   // Calculate total value
   const quantityIn = form.watch("quantityIn");
   const unitPrice = form.watch("unitPrice");
-  const totalValue = quantityIn * unitPrice;
+  const totalValue = quantityIn * (unitPrice || 0);
 
   // Fetch items
   useEffect(() => {

@@ -35,6 +35,7 @@ export const supplierSchema = z.object({
   address: z.string().optional(),
   taxId: z.string().optional(),
   remark: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
 
 // Stock In Validators

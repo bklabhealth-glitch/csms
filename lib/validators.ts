@@ -60,11 +60,11 @@ export const stockInSchema = z.object({
 // Stock Out Validators
 export const stockOutSchema = z.object({
   itemId: z.string().min(1, "กรุณาเลือกสินค้า"),
-  lotNo: z.string().optional(), // Changed to optional (will be validated in API)
+  lotNo: z.string().default(""), // Changed to default empty string
   quantityOut: z.number().min(0.01, "จำนวนต้องมากกว่า 0"),
   purpose: z.string().min(1, "กรุณากรอกวัตถุประสงค์"),
-  requestDept: z.string().optional(),
-  requestBy: z.string().optional(),
+  requestDept: z.string().default(""),
+  requestBy: z.string().default(""),
   outDate: z.date({
     required_error: "กรุณาเลือกวันที่เบิก",
   }),

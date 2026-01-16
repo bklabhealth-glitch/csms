@@ -310,7 +310,7 @@ export default function StockBalancePage() {
                         ฿{balance.totalValue?.toLocaleString() || "0"}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={balance.status} />
+                        <StatusBadge status={balance.status as "NORMAL" | "LOW_STOCK" | "NEAR_EXPIRY" | "EXPIRED"} />
                       </TableCell>
                     </TableRow>
                   ))}

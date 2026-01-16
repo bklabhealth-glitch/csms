@@ -23,6 +23,7 @@ export const itemSchema = z.object({
   storageLocation: z.string().optional(),
   responsiblePerson: z.string().optional(),
   remark: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
 
 // Supplier Validators

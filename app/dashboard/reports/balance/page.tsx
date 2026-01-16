@@ -268,7 +268,7 @@ export default function BalanceReportPage() {
                             ฿{item.totalValue?.toLocaleString() || "0"}
                           </TableCell>
                           <TableCell>
-                            <StatusBadge status={item.status} />
+                            <StatusBadge status={item.status as "NORMAL" | "LOW_STOCK" | "NEAR_EXPIRY" | "EXPIRED"} />
                           </TableCell>
                         </TableRow>
                       ))}

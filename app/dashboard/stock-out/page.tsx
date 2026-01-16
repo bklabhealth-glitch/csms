@@ -204,7 +204,7 @@ export default function StockOutPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={stockOut.status} />
+                        <StatusBadge status={stockOut.status as "DRAFT" | "CONFIRMED" | "APPROVED" | "CANCELLED"} />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

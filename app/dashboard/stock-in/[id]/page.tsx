@@ -134,7 +134,7 @@ export default function StockInDetailPage() {
             <div>
               <div className="text-sm text-muted-foreground">สถานะ</div>
               <div className="mt-1">
-                <StatusBadge status={stockIn.status} />
+                <StatusBadge status={stockIn.status as "DRAFT" | "CONFIRMED" | "APPROVED" | "CANCELLED"} />
               </div>
             </div>
             <div>

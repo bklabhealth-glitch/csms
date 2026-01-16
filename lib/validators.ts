@@ -53,7 +53,7 @@ export const stockInSchema = z.object({
     required_error: "กรุณาเลือกวันที่นำเข้า",
   }),
   importBy: z.string().optional(),
-  storageLocation: z.string().optional(),
+  storageLocation: z.string().default(""),
   remarkIn: z.string().optional(),
 });
 

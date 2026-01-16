@@ -1,0 +1,229 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  STOCK_OFFICER
+}
+
+enum ItemCategory {
+  EQUIPMENT
+  TOOL
+  CHEMICAL
+  TEST_KIT
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum TransactionStatus {
+  DRAFT
+  CONFIRMED
+  APPROVED
+  CANCELLED
+}
+
+enum BalanceStatus {
+  NORMAL
+  LOW_STOCK
+  NEAR_EXPIRY
+  EXPIRED
+}
+
+// User Table
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role
+  status    Status   @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdItems         ItemMaster[]  @relation("ItemCreator")
+  updatedItems         ItemMaster[]  @relation("ItemUpdater")
+  createdSuppliers     Supplier[]    @relation("SupplierCreator")
+  updatedSuppliers     Supplier[]    @relation("SupplierUpdater")
+  createdStockIns      StockIn[]     @relation("StockInCreator")
+  updatedStockIns      StockIn[]     @relation("StockInUpdater")
+  createdStockOuts     StockOut[]    @relation("StockOutCreator")
+  updatedStockOuts     StockOut[]    @relation("StockOutUpdater")
+  auditLogs            AuditLog[]
+
+  @@map("users")
+}
+
+// Item Master Table
+model ItemMaster {
+  id                String       @id @default(cuid())
+  itemCode          String       @unique
+  itemName          String
+  category          ItemCategory
+  unit              String
+  minimumStock      Float
+  defaultExpAlert   Int // days before expiry to alert
+  storageLocation   String?
+  responsiblePerson String?
+  remark            String?
+  status            Status       @default(ACTIVE)
+  createdAt         DateTime     @default(now())
+  createdBy         String
+  updatedAt         DateTime     @updatedAt
+  updatedBy         String?
+
+  // Relations
+  creator      User          @relation("ItemCreator", fields: [createdBy], references: [id])
+  updater      User?         @relation("ItemUpdater", fields: [updatedBy], references: [id])
+  stockIns     StockIn[]
+  stockOuts    StockOut[]
+  stockBalance StockBalance[]
+
+  @@map("item_master")
+}
+
+// Supplier Master Table
+model Supplier {
+  id            String   @id @default(cuid())
+  supplierCode  String   @unique
+  companyName   String
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  taxId         String?
+  remark        String?
+  status        Status   @default(ACTIVE)
+  createdAt     DateTime @default(now())
+  createdBy     String
+  updatedAt     DateTime @updatedAt
+  updatedBy     String?
+
+  // Relations
+  creator  User      @relation("SupplierCreator", fields: [createdBy], references: [id])
+  updater  User?     @relation("SupplierUpdater", fields: [updatedBy], references: [id])
+  stockIns StockIn[]
+
+  @@map("suppliers")
+}
+
+// Stock In Table
+model StockIn {
+  id              String            @id @default(cuid())
+  stockInNo       String            @unique
+  itemId          String
+  lotNo           String
+  expiryDate      DateTime
+  quantityIn      Float
+  unitPrice       Float?
+  totalValue      Float? // calculated: quantityIn * unitPrice
+  supplierId      String?
+  invoiceNo       String?
+  importDate      DateTime
+  importBy        String
+  storageLocation String
+  remarkIn        String?
+  status          TransactionStatus @default(DRAFT)
+  createdAt       DateTime          @default(now())
+  createdBy       String
+  updatedAt       DateTime          @updatedAt
+  updatedBy       String?
+
+  // Relations
+  item     ItemMaster @relation(fields: [itemId], references: [id])
+  supplier Supplier?  @relation(fields: [supplierId], references: [id])
+  creator  User       @relation("StockInCreator", fields: [createdBy], references: [id])
+  updater  User?      @relation("StockInUpdater", fields: [updatedBy], references: [id])
+
+  @@index([itemId])
+  @@index([supplierId])
+  @@index([importDate])
+  @@map("stock_in")
+}
+
+// Stock Out Table
+model StockOut {
+  id          String            @id @default(cuid())
+  stockOutNo  String            @unique
+  itemId      String
+  lotNo       String
+  quantityOut Float
+  purpose     String
+  requestDept String
+  requestBy   String
+  approveBy   String?
+  outDate     DateTime
+  remarkOut   String?
+  status      TransactionStatus @default(DRAFT)
+  createdAt   DateTime          @default(now())
+  createdBy   String
+  updatedAt   DateTime          @updatedAt
+  updatedBy   String?
+
+  // Relations
+  item    ItemMaster @relation(fields: [itemId], references: [id])
+  creator User       @relation("StockOutCreator", fields: [createdBy], references: [id])
+  updater User?      @relation("StockOutUpdater", fields: [updatedBy], references: [id])
+
+  @@index([itemId])
+  @@index([outDate])
+  @@map("stock_out")
+}
+
+// Stock Balance Table (Materialized View Approach)
+model StockBalance {
+  id              String        @id @default(cuid())
+  itemId          String
+  itemName        String // denormalized for performance
+  lotNo           String
+  expiryDate      DateTime
+  location        String
+  quantityBalance Float
+  unitPrice       Float?
+  totalValue      Float? // calculated: quantityBalance * unitPrice
+  status          BalanceStatus @default(NORMAL)
+  lastInDate      DateTime?
+  lastOutDate     DateTime?
+  daysToExpiry    Int? // calculated: expiryDate - current date
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  item ItemMaster @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId, lotNo, location])
+  @@index([itemId])
+  @@index([status])
+  @@map("stock_balance")
+}
+
+// Audit Log Table
+model AuditLog {
+  id        String   @id @default(cuid())
+  tableName String
+  recordId  String
+  action    String // CREATE, UPDATE, DELETE
+  oldValue  Json?
+  newValue  Json?
+  userId    String
+  timestamp DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([tableName, recordId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}

@@ -84,7 +84,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - only show on mobile when open */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -93,10 +93,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
 
       {/* Sidebar */}
+      {/* Desktop: always visible, static position */}
+      {/* Mobile: fixed position, slide in/out */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-full w-64 flex-col border-r bg-gradient-to-b from-slate-50 to-white transition-transform duration-300 lg:static lg:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          "flex h-full w-64 flex-col border-r bg-gradient-to-b from-slate-50 to-white",
+          // Desktop styles
+          "lg:relative lg:translate-x-0",
+          // Mobile styles
+          "fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:transition-none",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Logo */}

@@ -13,12 +13,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar - Hidden on mobile by default */}
-      <div className="hidden lg:block">
-        <Sidebar />
-      </div>
-
-      {/* Mobile Sidebar */}
+      {/* Single Sidebar - handles both desktop and mobile */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}

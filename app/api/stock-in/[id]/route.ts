@@ -63,6 +63,14 @@ export async function PUT(
 
     const body = await request.json();
 
+    // Convert date strings to Date objects
+    if (body.expiryDate) {
+      body.expiryDate = new Date(body.expiryDate);
+    }
+    if (body.importDate) {
+      body.importDate = new Date(body.importDate);
+    }
+
     // Validate input
     const validated = stockInSchema.parse(body);
 

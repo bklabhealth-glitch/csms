@@ -30,9 +30,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type StockInFormValues = z.infer<typeof stockInSchema>;
@@ -70,6 +78,8 @@ export function StockInForm({
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [loadingItems, setLoadingItems] = useState(false);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [itemOpen, setItemOpen] = useState(false);
+  const [supplierOpen, setSupplierOpen] = useState(false);
 
   const form = useForm<StockInFormValues & { itemId: string; supplierId: string }>({
     resolver: zodResolver(
@@ -156,33 +166,65 @@ export function StockInForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Item Selection */}
+        {/* Item Selection with Search */}
         <FormField
           control={form.control}
           name="itemId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>สินค้า *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกสินค้า" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {loadingItems ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      กำลังโหลด...
-                    </div>
-                  ) : (
-                    items.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.itemCode} - {item.itemName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <Popover open={itemOpen} onOpenChange={setItemOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={itemOpen}
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? items.find((item) => item.id === field.value)
+                          ? `${items.find((item) => item.id === field.value)?.itemCode} - ${items.find((item) => item.id === field.value)?.itemName}`
+                          : "เลือกสินค้า"
+                        : "เลือกสินค้า"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="ค้นหาสินค้า..." />
+                    <CommandList>
+                      <CommandEmpty>
+                        {loadingItems ? "กำลังโหลด..." : "ไม่พบสินค้า"}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {items.map((item) => (
+                          <CommandItem
+                            key={item.id}
+                            value={`${item.itemCode} ${item.itemName}`}
+                            onSelect={() => {
+                              form.setValue("itemId", item.id);
+                              setItemOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === item.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {item.itemCode} - {item.itemName}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {selectedItem && (
                 <FormDescription>
                   หน่วย: {selectedItem.unit} | หมวดหมู่: {selectedItem.category}
@@ -315,33 +357,65 @@ export function StockInForm({
           </div>
         </div>
 
-        {/* Supplier Selection */}
+        {/* Supplier Selection with Search */}
         <FormField
           control={form.control}
           name="supplierId"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>ซัพพลายเออร์ *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกซัพพลายเออร์" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {loadingSuppliers ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      กำลังโหลด...
-                    </div>
-                  ) : (
-                    suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.supplierCode} - {supplier.companyName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={supplierOpen}
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value
+                        ? suppliers.find((s) => s.id === field.value)
+                          ? `${suppliers.find((s) => s.id === field.value)?.supplierCode} - ${suppliers.find((s) => s.id === field.value)?.companyName}`
+                          : "เลือกซัพพลายเออร์"
+                        : "เลือกซัพพลายเออร์"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="ค้นหาซัพพลายเออร์..." />
+                    <CommandList>
+                      <CommandEmpty>
+                        {loadingSuppliers ? "กำลังโหลด..." : "ไม่พบซัพพลายเออร์"}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {suppliers.map((supplier) => (
+                          <CommandItem
+                            key={supplier.id}
+                            value={`${supplier.supplierCode} ${supplier.companyName}`}
+                            onSelect={() => {
+                              form.setValue("supplierId", supplier.id);
+                              setSupplierOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === supplier.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {supplier.supplierCode} - {supplier.companyName}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Pencil } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { StatusBadge } from "@/components/status-badge";
 import { format } from "date-fns";
@@ -111,16 +111,25 @@ export default function StockInDetailPage() {
         </div>
 
         {stockIn.status === "DRAFT" && (
-          <Button onClick={handleConfirm} disabled={confirming}>
-            {confirming ? (
-              <>กำลังยืนยัน...</>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                ยืนยันรับสินค้า
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/dashboard/stock-in/${stockInId}/edit`)}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              แก้ไข
+            </Button>
+            <Button onClick={handleConfirm} disabled={confirming}>
+              {confirming ? (
+                <>กำลังยืนยัน...</>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  ยืนยันรับสินค้า
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
 

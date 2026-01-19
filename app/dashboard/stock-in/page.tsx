@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Search, Eye, CheckCircle } from "lucide-react";
+import { Plus, Search, Eye, CheckCircle, Pencil } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { StatusBadge } from "@/components/status-badge";
 import { format } from "date-fns";
@@ -224,15 +224,26 @@ export default function StockInPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {stockIn.status === "DRAFT" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleConfirm(stockIn.id, stockIn.stockInNo)
-                              }
-                            >
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  router.push(`/dashboard/stock-in/${stockIn.id}/edit`)
+                                }
+                              >
+                                <Pencil className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleConfirm(stockIn.id, stockIn.stockInNo)
+                                }
+                              >
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>

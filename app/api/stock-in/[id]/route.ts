@@ -47,7 +47,7 @@ export async function GET(
   }
 }
 
-// PUT /api/stock-in/[id] - แก้ไข Stock In (เฉพาะ DRAFT)
+// PUT /api/stock-in/[id] - แก้ไข Stock In (รองรับทั้ง DRAFT และ CONFIRMED)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -75,10 +75,10 @@ export async function PUT(
       return NextResponse.json({ error: "ไม่พบรายการรับเข้า" }, { status: 404 });
     }
 
-    // Can only edit DRAFT
-    if (oldStockIn.status !== "DRAFT") {
+    // Cannot edit CANCELLED records
+    if (oldStockIn.status === "CANCELLED") {
       return NextResponse.json(
-        { error: "ไม่สามารถแก้ไขรายการที่ยืนยันแล้ว" },
+        { error: "ไม่สามารถแก้ไขรายการที่ยกเลิกแล้ว" },
         { status: 400 }
       );
     }
@@ -88,45 +88,167 @@ export async function PUT(
       ? validated.quantityIn * validated.unitPrice
       : null;
 
-    // Update stock in
-    const stockIn = await prisma.stockIn.update({
-      where: { id },
-      data: {
-        ...validated,
-        totalValue,
-        updatedBy: session.user.id,
-      },
-      include: {
-        item: {
-          select: {
-            itemCode: true,
-            itemName: true,
-            unit: true,
+    // If editing a CONFIRMED record, need to update stock balance
+    const isConfirmed = oldStockIn.status === "CONFIRMED";
+    const quantityDiff = validated.quantityIn - oldStockIn.quantityIn;
+    const locationChanged = validated.storageLocation !== oldStockIn.storageLocation;
+    const lotChanged = validated.lotNo !== oldStockIn.lotNo;
+    const itemChanged = validated.itemId !== oldStockIn.itemId;
+
+    // Use transaction to ensure data consistency
+    const result = await prisma.$transaction(async (tx) => {
+      // Update stock in record
+      const stockIn = await tx.stockIn.update({
+        where: { id },
+        data: {
+          ...validated,
+          totalValue,
+          updatedBy: session.user.id,
+        },
+        include: {
+          item: {
+            select: {
+              itemCode: true,
+              itemName: true,
+              unit: true,
+            },
+          },
+          supplier: {
+            select: {
+              supplierCode: true,
+              companyName: true,
+            },
+          },
+          updater: {
+            select: { name: true, email: true },
           },
         },
-        supplier: {
-          select: {
-            supplierCode: true,
-            companyName: true,
-          },
-        },
-        updater: {
-          select: { name: true, email: true },
-        },
-      },
+      });
+
+      // If CONFIRMED, update stock balance
+      if (isConfirmed) {
+        // If item, lot, or location changed - need to move balance from old to new
+        if (itemChanged || lotChanged || locationChanged) {
+          // Decrease old balance
+          const oldBalance = await tx.stockBalance.findUnique({
+            where: {
+              itemId_lotNo_location: {
+                itemId: oldStockIn.itemId,
+                lotNo: oldStockIn.lotNo,
+                location: oldStockIn.storageLocation,
+              },
+            },
+          });
+
+          if (oldBalance) {
+            const newOldBalance = oldBalance.quantityBalance - oldStockIn.quantityIn;
+            if (newOldBalance <= 0) {
+              // Delete if balance becomes zero or negative
+              await tx.stockBalance.delete({
+                where: { id: oldBalance.id },
+              });
+            } else {
+              await tx.stockBalance.update({
+                where: { id: oldBalance.id },
+                data: {
+                  quantityBalance: newOldBalance,
+                  totalValue: oldBalance.unitPrice ? newOldBalance * oldBalance.unitPrice : null,
+                },
+              });
+            }
+          }
+
+          // Get item info for new balance
+          const item = await tx.itemMaster.findUnique({
+            where: { id: validated.itemId },
+          });
+
+          // Create or update new balance
+          await tx.stockBalance.upsert({
+            where: {
+              itemId_lotNo_location: {
+                itemId: validated.itemId,
+                lotNo: validated.lotNo,
+                location: validated.storageLocation || "",
+              },
+            },
+            update: {
+              quantityBalance: { increment: validated.quantityIn },
+              unitPrice: validated.unitPrice,
+              totalValue: validated.unitPrice
+                ? { increment: validated.quantityIn * validated.unitPrice }
+                : null,
+              expiryDate: validated.expiryDate,
+              lastInDate: validated.importDate,
+            },
+            create: {
+              itemId: validated.itemId,
+              itemName: item?.itemName || "",
+              lotNo: validated.lotNo,
+              expiryDate: validated.expiryDate,
+              location: validated.storageLocation || "",
+              quantityBalance: validated.quantityIn,
+              unitPrice: validated.unitPrice,
+              totalValue: validated.unitPrice
+                ? validated.quantityIn * validated.unitPrice
+                : null,
+              lastInDate: validated.importDate,
+            },
+          });
+        } else if (quantityDiff !== 0) {
+          // Only quantity changed - simple update
+          await tx.stockBalance.update({
+            where: {
+              itemId_lotNo_location: {
+                itemId: oldStockIn.itemId,
+                lotNo: oldStockIn.lotNo,
+                location: oldStockIn.storageLocation,
+              },
+            },
+            data: {
+              quantityBalance: { increment: quantityDiff },
+              unitPrice: validated.unitPrice,
+              totalValue: validated.unitPrice
+                ? { increment: quantityDiff * validated.unitPrice }
+                : null,
+              expiryDate: validated.expiryDate,
+            },
+          });
+        } else {
+          // Only other fields changed (expiry, price, etc.)
+          await tx.stockBalance.update({
+            where: {
+              itemId_lotNo_location: {
+                itemId: oldStockIn.itemId,
+                lotNo: oldStockIn.lotNo,
+                location: oldStockIn.storageLocation,
+              },
+            },
+            data: {
+              unitPrice: validated.unitPrice,
+              totalValue: validated.unitPrice
+                ? oldStockIn.quantityIn * validated.unitPrice
+                : null,
+              expiryDate: validated.expiryDate,
+            },
+          });
+        }
+      }
+
+      return stockIn;
     });
 
     // Create audit log
     await createAuditLog({
       tableName: "stock_in",
-      recordId: stockIn.id,
+      recordId: result.id,
       action: "UPDATE",
       oldValue: oldStockIn,
-      newValue: stockIn,
+      newValue: result,
       userId: session.user.id,
     });
 
-    return NextResponse.json(stockIn);
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error("Error updating stock in:", error);
 

@@ -28,11 +28,11 @@ export default function EditStockInPage() {
 
         const data = await response.json();
 
-        // Check if can edit (only DRAFT status)
-        if (data.status !== "DRAFT") {
+        // Check if can edit (not CANCELLED)
+        if (data.status === "CANCELLED") {
           toast({
             title: "ไม่สามารถแก้ไขได้",
-            description: "สามารถแก้ไขได้เฉพาะรายการที่ยังเป็นแบบร่างเท่านั้น",
+            description: "ไม่สามารถแก้ไขรายการที่ยกเลิกแล้ว",
             variant: "destructive",
           });
           router.push(`/dashboard/stock-in/${stockInId}`);

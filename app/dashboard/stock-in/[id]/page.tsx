@@ -110,7 +110,7 @@ export default function StockInDetailPage() {
           </div>
         </div>
 
-        {stockIn.status === "DRAFT" && (
+        {stockIn.status !== "CANCELLED" && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -119,16 +119,18 @@ export default function StockInDetailPage() {
               <Pencil className="mr-2 h-4 w-4" />
               แก้ไข
             </Button>
-            <Button onClick={handleConfirm} disabled={confirming}>
-              {confirming ? (
-                <>กำลังยืนยัน...</>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  ยืนยันรับสินค้า
-                </>
-              )}
-            </Button>
+            {stockIn.status === "DRAFT" && (
+              <Button onClick={handleConfirm} disabled={confirming}>
+                {confirming ? (
+                  <>กำลังยืนยัน...</>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    ยืนยันรับสินค้า
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
       </div>

@@ -43,6 +43,7 @@ interface Item {
   itemName: string;
   unit: string;
   category: string;
+  storageLocation?: string;
 }
 
 interface Supplier {
@@ -136,12 +137,17 @@ export function StockInForm({
     fetchSuppliers();
   }, []);
 
-  // Update selected item
+  // Update selected item and auto-fill storageLocation
   useEffect(() => {
     const itemId = form.watch("itemId");
     const item = items.find((i) => i.id === itemId);
     setSelectedItem(item || null);
-  }, [form.watch("itemId"), items]);
+
+    // Auto-fill storageLocation from item master
+    if (item?.storageLocation) {
+      form.setValue("storageLocation", item.storageLocation);
+    }
+  }, [form.watch("itemId"), items, form]);
 
   const handleSubmit = async (data: StockInFormValues & { itemId: string; supplierId: string }) => {
     await onSubmit(data);

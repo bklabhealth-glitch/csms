@@ -42,6 +42,7 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CalendarIcon, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DateInput } from "@/components/ui/date-input";
 
 type StockInFormValues = z.infer<typeof stockInSchema>;
 
@@ -258,36 +259,15 @@ export function StockInForm({
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>วันหมดอายุ *</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "d MMMM yyyy", { locale: th })
-                        ) : (
-                          <span>เลือกวันที่</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      locale={th}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="dd/mm/yyyy"
+                    minDate={new Date()}
+                  />
+                </FormControl>
+                <FormDescription>พิมพ์วันที่ เช่น 31/12/2026 หรือกดปุ่มเลือกจากปฏิทิน</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -444,35 +424,13 @@ export function StockInForm({
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>วันที่รับเข้า *</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "d MMMM yyyy", { locale: th })
-                        ) : (
-                          <span>เลือกวันที่</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      locale={th}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="dd/mm/yyyy"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

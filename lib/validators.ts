@@ -38,14 +38,12 @@ export const supplierSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
 });
 
-// Stock In Validators
+// Stock In Validators (base schema without expiry date future check)
 export const stockInSchema = z.object({
   itemId: z.string().min(1, "กรุณาเลือกสินค้า"),
   lotNo: z.string().min(1, "กรุณากรอกเลข Lot"),
   expiryDate: z.date({
     required_error: "กรุณาเลือกวันหมดอายุ",
-  }).refine((date) => date > new Date(), {
-    message: "วันหมดอายุต้องเป็นวันในอนาคต",
   }),
   quantityIn: z.number().min(0.01, "จำนวนต้องมากกว่า 0"),
   unitPrice: z.number().min(0, "ราคาต้องมากกว่าหรือเท่ากับ 0").optional(),
@@ -58,6 +56,15 @@ export const stockInSchema = z.object({
   storageLocation: z.string().default(""),
   remarkIn: z.string().optional(),
 });
+
+// Stock In schema for creating new records (requires future expiry date)
+export const stockInCreateSchema = stockInSchema.refine(
+  (data) => data.expiryDate > new Date(),
+  {
+    message: "วันหมดอายุต้องเป็นวันในอนาคต",
+    path: ["expiryDate"],
+  }
+);
 
 // Stock Out Validators
 export const stockOutSchema = z.object({
@@ -79,4 +86,5 @@ export type UserInput = z.infer<typeof userSchema>;
 export type ItemInput = z.infer<typeof itemSchema>;
 export type SupplierInput = z.infer<typeof supplierSchema>;
 export type StockInInput = z.infer<typeof stockInSchema>;
+export type StockInCreateInput = z.infer<typeof stockInCreateSchema>;
 export type StockOutInput = z.infer<typeof stockOutSchema>;
